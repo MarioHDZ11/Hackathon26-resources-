@@ -1,0 +1,16 @@
+package com.BiSourceMX.Proyect.repository;
+
+import com.BiSourceMX.Proyect.model.Recurso;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface RecursoRepository extends JpaRepository<Recurso, Integer> {
+
+    Optional<Recurso> findByNombre(String nombre);
+
+    List<Recurso> findByCategoria(String categoria);
+}
