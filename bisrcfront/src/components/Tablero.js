@@ -9,6 +9,14 @@ function obtenerClaseBienestar(porcentaje) {
   return 'estado-optimo';
 }
 
+function bienestarToColor(bienestar) {
+  if (bienestar < 25) return '#ff1744';
+  if (bienestar < 45) return '#ff9100';
+  if (bienestar < 60) return '#ffea00';
+  if (bienestar < 75) return '#88C440';
+  return '#00e676';
+}
+
 const estados = [
   {
     "id": "agu",
@@ -259,6 +267,7 @@ function getMunicipios(estado) {
 function Tablero({ estadoSeleccionado, setEstadoSeleccionado }) {
   const gameState = useGameState();
   const [hovered, setHovered] = useState(null);
+<<<<<<< HEAD
   const [hoveredInfo, setHoveredInfo] = useState(null);
   const [animSpeed, setAnimSpeed] = useState(0.3);
   const [shadowIntensity, setShadowIntensity] = useState(0.7);
@@ -305,7 +314,6 @@ function Tablero({ estadoSeleccionado, setEstadoSeleccionado }) {
       setHoveredInfo(null);
     }, 400);
   }
-
   const municipios = estadoSeleccionado ? getMunicipios(estadoSeleccionado) : [];
 
   return (
@@ -323,6 +331,7 @@ function Tablero({ estadoSeleccionado, setEstadoSeleccionado }) {
       </div>
       <div className="tablero-cuerpo">
         <div className="tablero-col-mapa">
+<<<<<<< HEAD
           <div className="mapa-contenedor" style={{ position: 'relative', overflow: 'visible' }}>
             <svg
               ref={svgRef}
@@ -342,6 +351,7 @@ function Tablero({ estadoSeleccionado, setEstadoSeleccionado }) {
                 const eData = gameState.estados[e.id];
                 const isHovered = hovered === e.name;
                 const isSelected = estadoSeleccionado === e.name;
+<<<<<<< HEAD
                 const claseBienestar = eData ? obtenerClaseBienestar(eData.bienestar) : '';
                 return (
                 <path
@@ -349,6 +359,7 @@ function Tablero({ estadoSeleccionado, setEstadoSeleccionado }) {
                   id={e.id}
                   name={e.name}
                   d={e.d}
+<<<<<<< HEAD
                   className={[
                     'estado-path',
                     claseBienestar,

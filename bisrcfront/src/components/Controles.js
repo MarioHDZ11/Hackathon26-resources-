@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useGameState, useGameDispatch } from '../context/GameStateContext';
+import { useGameState, useGameDispatch, useGameSync } from '../context/GameStateContext';
 
 const entidades = [
   "CDMX", "Jalisco", "Nuevo León", "Gobierno Federal",
@@ -51,6 +51,7 @@ const opcionesRecursos = Object.keys(costosBeneficios);
 function Controles({ estadoSeleccionado }) {
   const state = useGameState();
   const dispatch = useGameDispatch();
+  const syncState = useGameSync();
   const [modal, setModal] = useState(null);
 
   const [invertirRecurso, setInvertirRecurso] = useState("Agua");
@@ -89,6 +90,7 @@ function Controles({ estadoSeleccionado }) {
         transporte: esDistribucion ? transporteModo : null,
       }
     });
+    setTimeout(() => syncState(), 500);
     setModal(null);
   }
 

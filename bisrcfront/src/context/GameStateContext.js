@@ -1,10 +1,15 @@
-import React, { createContext, useContext, useReducer, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useRef, useCallback } from 'react';
 import { estadosInicial, calcularFederales } from '../data/initialState';
+import api from '../services/api';
+
+const INIT_DATA = estadosInicial;
+const INIT_KEYS = Object.keys(INIT_DATA);
 
 const GameStateContext = createContext(null);
 
 const FACTOR_CONSUMO = 0.00000015;
 const TICK_INTERVAL = 10000;
+const SYNC_INTERVAL = 30000;
 
 function copiarEstado(estados) {
   const copia = {};
@@ -29,11 +34,42 @@ function recalcBienestar(recursos) {
 function initialState() {
   const estados = copiarEstado(estadosInicial);
   const federal = calcularFederales(estados);
-  return { estados, ...federal, tickCount: 0 };
+  return { estados, ...federal, tickCount: 0, idPartida: null };
+}
+
+function serializarEstado(state) {
+  const estadosArr = Object.entries(state.estados).map(([id, e], idx) => ({
+    idEstadoRef: idx + 1,
+    nombreEstado: e.nombre,
+    poblacion: e.poblacion,
+    bienestar: e.bienestar,
+    presupuesto: e.presupuesto,
+    agua: e.recursos.agua,
+    energia: e.recursos.energia,
+    alimento: e.recursos.alimento,
+    salud: e.recursos.salud,
+    sostenibilidad: e.recursos.sostenibilidad,
+    infraestructura: e.recursos.infraestructura,
+    desarrolloSociocultural: e.recursos.desarrolloSociocultural,
+    distribucion: e.recursos.distribucion,
+  }));
+  return {
+    tickCount: state.tickCount,
+    estados: estadosArr,
+    presupuestoFederal: state.presupuestoFederal,
+    poblacionTotal: state.poblacionTotal,
+    bienestarFederal: state.bienestarFederal,
+  };
 }
 
 function gameReducer(state, action) {
   switch (action.type) {
+    case 'CARGAR_ESTADO': {
+      return { ...action.payload };
+    }
+    case 'SET_ID_PARTIDA': {
+      return { ...state, idPartida: action.payload };
+    }
     case 'TICK': {
       const nuevos = copiarEstado(state.estados);
       for (const id in nuevos) {
@@ -47,7 +83,7 @@ function gameReducer(state, action) {
         e.poblacion = Math.max(100000, Math.round(e.poblacion * (1 + delta)));
       }
       const federal = calcularFederales(nuevos);
-      return { estados: nuevos, ...federal, tickCount: state.tickCount + 1 };
+      return { ...state, estados: nuevos, ...federal, tickCount: state.tickCount + 1 };
     }
     case 'INVERTIR_RECURSO': {
       const { estado, recurso, transporte } = action.payload;
@@ -125,7 +161,7 @@ function gameReducer(state, action) {
 
       e.bienestar = recalcBienestar(e.recursos);
       const federal = calcularFederales(nuevos);
-      return { estados: nuevos, ...federal, tickCount: state.tickCount };
+      return { ...state, estados: nuevos, ...federal, tickCount: state.tickCount };
     }
     default:
       return state;
@@ -135,6 +171,119 @@ function gameReducer(state, action) {
 export function GameStateProvider({ children }) {
   const [state, dispatch] = useReducer(gameReducer, null, initialState);
   const tickRef = useRef(null);
+  const syncRef = useRef(null);
+  const stateRef = useRef(state);
+  const inicializado = useRef(false);
+
+  stateRef.current = state;
+
+  const syncState = useCallback(async () => {
+    try {
+      const s = stateRef.current;
+      if (!s.idPartida) return;
+      const datosJson = JSON.stringify(serializarEstado(s));
+      await api.actualizarPartida(s.idPartida, {
+        tickCount: s.tickCount,
+        datosJson,
+        estadosPartida: Object.entries(s.estados).map(([id, e], idx) => ({
+          idEstadoRef: idx + 1,
+          nombreEstado: e.nombre,
+          poblacion: e.poblacion,
+          bienestar: e.bienestar,
+          presupuesto: e.presupuesto,
+          agua: e.recursos.agua,
+          energia: e.recursos.energia,
+          alimento: e.recursos.alimento,
+          salud: e.recursos.salud,
+          sostenibilidad: e.recursos.sostenibilidad,
+          infraestructura: e.recursos.infraestructura,
+          desarrolloSociocultural: e.recursos.desarrolloSociocultural,
+          distribucion: e.recursos.distribucion,
+        })),
+      });
+    } catch (err) {
+      console.warn('Error syncing game state:', err.message);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (inicializado.current) return;
+    inicializado.current = true;
+
+    api.getUltimaPartida().then((partida) => {
+      if (partida && partida.datosJson) {
+        try {
+          const parsed = JSON.parse(partida.datosJson);
+          if (parsed && parsed.estados) {
+            const estadosMap = {};
+            INIT_KEYS.forEach((key, idx) => {
+              const ep = parsed.estados[idx];
+              if (ep) {
+                estadosMap[key] = {
+                  ...INIT_DATA[key],
+                  poblacion: ep.poblacion || INIT_DATA[key].poblacion,
+                  bienestar: ep.bienestar || INIT_DATA[key].bienestar,
+                  presupuesto: ep.presupuesto || INIT_DATA[key].presupuesto,
+                  recursos: {
+                    agua: ep.agua ?? INIT_DATA[key].recursos.agua,
+                    energia: ep.energia ?? INIT_DATA[key].recursos.energia,
+                    alimento: ep.alimento ?? INIT_DATA[key].recursos.alimento,
+                    salud: ep.salud ?? INIT_DATA[key].recursos.salud,
+                    sostenibilidad: ep.sostenibilidad ?? INIT_DATA[key].recursos.sostenibilidad,
+                    infraestructura: ep.infraestructura ?? INIT_DATA[key].recursos.infraestructura,
+                    desarrolloSociocultural: ep.desarrolloSociocultural ?? INIT_DATA[key].recursos.desarrolloSociocultural,
+                    distribucion: ep.distribucion ?? INIT_DATA[key].recursos.distribucion,
+                  },
+                };
+              }
+            });
+            const federal = calcularFederales(estadosMap);
+            dispatch({
+              type: 'CARGAR_ESTADO',
+              payload: {
+                estados: estadosMap,
+                ...federal,
+                tickCount: parsed.tickCount || 0,
+                idPartida: partida.idPartida,
+              },
+            });
+            return;
+          }
+        } catch (e) {
+          console.warn('Error parsing saved game state, starting fresh');
+        }
+      }
+      if (partida && partida.idPartida) {
+        dispatch({ type: 'SET_ID_PARTIDA', payload: partida.idPartida });
+      }
+    }).catch(() => {
+      api.crearPartida({
+        nombre: 'Partida ' + new Date().toLocaleString(),
+        datosJson: JSON.stringify(serializarEstado(stateRef.current)),
+        estadosPartida: Object.entries(stateRef.current.estados).map(([id, e], idx) => ({
+          idEstadoRef: idx + 1,
+          nombreEstado: e.nombre,
+          poblacion: e.poblacion,
+          bienestar: e.bienestar,
+          presupuesto: e.presupuesto,
+          agua: e.recursos.agua,
+          energia: e.recursos.energia,
+          alimento: e.recursos.alimento,
+          salud: e.recursos.salud,
+          sostenibilidad: e.recursos.sostenibilidad,
+          infraestructura: e.recursos.infraestructura,
+          desarrolloSociocultural: e.recursos.desarrolloSociocultural,
+          distribucion: e.recursos.distribucion,
+        })),
+      }).then((nueva) => {
+        if (nueva && nueva.idPartida) {
+          dispatch({ type: 'SET_ID_PARTIDA', payload: nueva.idPartida });
+        }
+      }).catch((err) => {
+        console.warn('Could not create game on backend:', err.message);
+      });
+    });
+  }, []);
 
   useEffect(() => {
     tickRef.current = setInterval(() => {
@@ -143,8 +292,15 @@ export function GameStateProvider({ children }) {
     return () => clearInterval(tickRef.current);
   }, []);
 
+  useEffect(() => {
+    syncRef.current = setInterval(() => {
+      syncState();
+    }, SYNC_INTERVAL);
+    return () => clearInterval(syncRef.current);
+  }, [syncState]);
+
   return (
-    <GameStateContext.Provider value={{ state, dispatch }}>
+    <GameStateContext.Provider value={{ state, dispatch, syncState }}>
       {children}
     </GameStateContext.Provider>
   );
@@ -160,4 +316,10 @@ export function useGameDispatch() {
   const ctx = useContext(GameStateContext);
   if (!ctx) throw new Error('useGameDispatch must be used within GameStateProvider');
   return ctx.dispatch;
+}
+
+export function useGameSync() {
+  const ctx = useContext(GameStateContext);
+  if (!ctx) throw new Error('useGameSync must be used within GameStateProvider');
+  return ctx.syncState;
 }
