@@ -261,10 +261,6 @@ function Tablero({ estadoSeleccionado, setEstadoSeleccionado }) {
   const [hovered, setHovered] = useState(null);
 
   const municipios = estadoSeleccionado ? getMunicipios(estadoSeleccionado) : [];
-  const eArr = Object.values(gameState.estados);
-  const aguaNal = eArr.length ? Math.round(eArr.reduce((s, e) => s + e.recursos.agua, 0) / eArr.length) : 0;
-  const energiaNal = eArr.length ? Math.round(eArr.reduce((s, e) => s + e.recursos.energia, 0) / eArr.length) : 0;
-  const presupuestoNal = eArr.length ? Math.round(eArr.reduce((s, e) => s + e.presupuesto, 0) / eArr.length) : 0;
 
   return (
     <main className={`tablero ${estadoSeleccionado ? 'tablero-con-seleccion' : ''}`}>
@@ -320,33 +316,47 @@ function Tablero({ estadoSeleccionado, setEstadoSeleccionado }) {
             </svg>
           </div>
           <div className="panel-nacional">
-            <div className="recursos-nacionales">
-              <div className="recurso-led-item">
-                <span className="recurso-led-label">AGUA</span>
-                <div className="barra-led">
-                  <div className="barra-fill fill-agua" style={{ width: `${aguaNal}%` }} />
-                </div>
-                <span className="recurso-led-valor">{aguaNal}%</span>
-              </div>
-              <div className="recurso-led-item">
-                <span className="recurso-led-label">ENERGÍA</span>
-                <div className="barra-led">
-                  <div className="barra-fill fill-energia" style={{ width: `${energiaNal}%` }} />
-                </div>
-                <span className="recurso-led-valor">{energiaNal}%</span>
-              </div>
-              <div className="recurso-led-item">
-                <span className="recurso-led-label">PRESUPUESTO</span>
-                <div className="barra-led">
-                  <div className="barra-fill fill-presupuesto" style={{ width: `${presupuestoNal}%` }} />
-                </div>
-                <span className="recurso-led-valor">{presupuestoNal}%</span>
-              </div>
+            <div className="panel-nacional-header">
+              <span className="panel-nacional-titulo">INDICADORES NACIONALES</span>
+              <span className="panel-nacional-pob">
+                POB: {(gameState.poblacionTotal / 1e6).toFixed(1)}M
+              </span>
             </div>
-            <div className="bienestar-nacional">
-              <span className="bienestar-label">ÍNDICE DE BIENESTAR NACIONAL</span>
-              <div className="bienestar-medidor">
-                <span className="bienestar-numero">{gameState.bienestarFederal}%</span>
+            <div className="panel-nacional-cuerpo">
+              <div className="panel-nacional-barras">
+                {[
+                  { id: 'aguaPromedio', label: 'AGUA', color: '#00b0ff' },
+                  { id: 'energiaPromedio', label: 'ENERGÍA', color: '#ffea00' },
+                  { id: 'alimentoPromedio', label: 'ALIMENTO', color: '#ff9100' },
+                  { id: 'saludPromedio', label: 'SALUD', color: '#ff1744' },
+                  { id: 'sostenibilidadPromedio', label: 'SOSTENIBILIDAD', color: '#00e676' },
+                  { id: 'infraestructuraPromedio', label: 'INFRAESTRUCTURA', color: '#88C440' },
+                  { id: 'desarrolloPromedio', label: 'D. SOCIAL Y CULTURAL', color: '#ce93d8' },
+                  { id: 'distribucionPromedio', label: 'DISTRIBUCIÓN', color: '#81d4fa' },
+                ].map((ind) => (
+                  <div key={ind.id} className="ind-nac-item">
+                    <span className="ind-nac-label">{ind.label}</span>
+                    <div className="ind-nac-bar-bg">
+                      <div
+                        className="ind-nac-bar-fill"
+                        style={{ width: `${gameState[ind.id] || 0}%`, backgroundColor: ind.color }}
+                      />
+                    </div>
+                    <span className="ind-nac-valor">{gameState[ind.id] || 0}%</span>
+                  </div>
+                ))}
+              </div>
+              <div className="panel-nacional-side">
+                <div className="bienestar-nacional">
+                  <span className="bienestar-label">BIENESTAR NACIONAL</span>
+                  <div className="bienestar-medidor">
+                    <span className="bienestar-numero">{gameState.bienestarFederal}%</span>
+                  </div>
+                </div>
+                <div className="presupuesto-nacional-info">
+                  <span className="presupuesto-nacional-label">PRESUPUESTO FED</span>
+                  <span className="presupuesto-nacional-valor">${gameState.presupuestoFederal}M</span>
+                </div>
               </div>
             </div>
           </div>

@@ -47,6 +47,9 @@ function generarValores(semilla) {
     alimento: 40 + ((s * 7) % 51),
     salud: 35 + ((s * 11) % 51),
     sostenibilidad: 45 + ((s * 13) % 41),
+    infraestructura: 25 + ((s * 17) % 46),
+    desarrolloSociocultural: 30 + ((s * 19) % 46),
+    distribucion: 20 + ((s * 23) % 46),
   };
 }
 
@@ -83,11 +86,20 @@ for (const e of estadosData) {
 function calcularFederales(estados) {
   const values = Object.values(estados);
   const total = values.length;
-  if (total === 0) return { poblacionTotal: 0, bienestarFederal: 0, presupuestoFederal: 0 };
+  if (total === 0) return { poblacionTotal: 0, bienestarFederal: 0, presupuestoFederal: 0, aguaPromedio: 0, energiaPromedio: 0, alimentoPromedio: 0, saludPromedio: 0, sostenibilidadPromedio: 0, infraestructuraPromedio: 0, desarrolloPromedio: 0, distribucionPromedio: 0 };
+  const sum = (k) => values.reduce((s, e) => s + (typeof e.recursos[k] === 'number' ? e.recursos[k] : e[k] || 0), 0);
   return {
     poblacionTotal: values.reduce((s, e) => s + e.poblacion, 0),
     bienestarFederal: Math.round(values.reduce((s, e) => s + e.bienestar, 0) / total),
     presupuestoFederal: values.reduce((s, e) => s + e.presupuesto, 0),
+    aguaPromedio: Math.round(sum('agua') / total),
+    energiaPromedio: Math.round(sum('energia') / total),
+    alimentoPromedio: Math.round(sum('alimento') / total),
+    saludPromedio: Math.round(sum('salud') / total),
+    sostenibilidadPromedio: Math.round(sum('sostenibilidad') / total),
+    infraestructuraPromedio: Math.round(sum('infraestructura') / total),
+    desarrolloPromedio: Math.round(sum('desarrolloSociocultural') / total),
+    distribucionPromedio: Math.round(sum('distribucion') / total),
   };
 }
 

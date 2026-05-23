@@ -6,13 +6,55 @@ const entidades = [
   "ONU", "Cruz Roja", "Comisión de Agua", "SEDENA"
 ];
 
+const costosBeneficios = {
+  'Agua': {
+    consume: { Presupuesto: 30, Sostenibilidad: 2 },
+    genera: { Agua: 15, Bienestar: 2 },
+  },
+  'Energía': {
+    consume: { Presupuesto: 30, Sostenibilidad: 3 },
+    genera: { Energía: 15, Bienestar: 2 },
+  },
+  'Alimento': {
+    consume: { Presupuesto: 40, Sostenibilidad: 2, Energía: 5, Agua: 5 },
+    genera: { Alimento: 15, Bienestar: 2 },
+  },
+  'Salud': {
+    consume: { Presupuesto: 35, Energía: 3, Agua: 3 },
+    genera: { Salud: 15, Bienestar: 3 },
+  },
+  'Infraestructura': {
+    consume: { Presupuesto: 50, Sostenibilidad: 3, Energía: 5, Agua: 5 },
+    genera: { Presupuesto: 8, Bienestar: 3 },
+  },
+  'D. Social y Cultural': {
+    consume: { Presupuesto: 30, Sostenibilidad: 2, Energía: 3, Agua: 3 },
+    genera: { Bienestar: 6 },
+  },
+  'Sostenibilidad': {
+    consume: { Presupuesto: 25, Energía: 3, Agua: 3 },
+    genera: { Sostenibilidad: 15, Bienestar: 3 },
+  },
+  'Distribución': {
+    consume: { Presupuesto: 30, Sostenibilidad: 2 },
+    genera: { Distribución: 12, Bienestar: 2 },
+    modos: {
+      Aéreo: { costoPresupuesto: 1.5, beneficio: 1.3 },
+      Terrestre: { costoPresupuesto: 1.0, beneficio: 1.0 },
+      Naval: { costoPresupuesto: 0.7, beneficio: 0.8 },
+    },
+  },
+};
+
+const opcionesRecursos = Object.keys(costosBeneficios);
+
 function Controles({ estadoSeleccionado }) {
   const state = useGameState();
   const dispatch = useGameDispatch();
   const [modal, setModal] = useState(null);
 
   const [invertirRecurso, setInvertirRecurso] = useState("Agua");
-  const [invertirCantidad, setInvertirCantidad] = useState(10);
+  const [transporteModo, setTransporteModo] = useState("Terrestre");
 
   const [entidadMendigar, setEntidadMendigar] = useState("");
   const [nivelDesesperacion, setNivelDesesperacion] = useState(5);
@@ -25,6 +67,12 @@ function Controles({ estadoSeleccionado }) {
 
   const estadoData = estadoSeleccionado ? state.estados[Object.keys(state.estados).find(k => state.estados[k].nombre === estadoSeleccionado)] : null;
 
+  const reglasActuales = costosBeneficios[invertirRecurso];
+  const esDistribucion = invertirRecurso === 'Distribución';
+  const multTransporte = esDistribucion && transporteModo
+    ? costosBeneficios.Distribución.modos[transporteModo]
+    : null;
+
   function cerrarModal() {
     setModal(null);
   }
@@ -35,9 +83,13 @@ function Controles({ estadoSeleccionado }) {
     if (!id) return;
     dispatch({
       type: 'INVERTIR_RECURSO',
-      payload: { estado: id, recurso: invertirRecurso, cantidad: invertirCantidad }
+      payload: {
+        estado: id,
+        recurso: invertirRecurso,
+        transporte: esDistribucion ? transporteModo : null,
+      }
     });
-    cerrarModal();
+    setModal(null);
   }
 
   return (
@@ -74,43 +126,99 @@ function Controles({ estadoSeleccionado }) {
 
       {modal === 'invertir' && (
         <div className="modal-overlay" onClick={cerrarModal}>
-          <div className="modal-ventana" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-ventana modal-ventana-invertir" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <span className="modal-icon">◈</span>
-              <span className="modal-titulo">INVERTIR RECURSO</span>
+              <span className="modal-titulo">INVERTIR EN {estadoSeleccionado}</span>
               <button className="modal-cerrar" onClick={cerrarModal}>✕</button>
             </div>
             <div className="modal-cuerpo">
-              <p className="modal-desc">
-                Asigna recursos adicionales a <strong>{estadoSeleccionado}</strong>.
-                {estadoData && <span> Presupuesto disponible: ${estadoData.presupuesto}M</span>}
-              </p>
               <div className="modal-campo">
-                <label className="modal-label">RECURSO A INVERTIR</label>
+                <label className="modal-label">CATEGORÍA DE INVERSIÓN</label>
                 <select
                   className="modal-select"
                   value={invertirRecurso}
-                  onChange={(e) => setInvertirRecurso(e.target.value)}
+                  onChange={(e) => { setInvertirRecurso(e.target.value); setTransporteModo('Terrestre'); }}
                 >
-                  <option value="Agua">Agua (costo: 3/unidad)</option>
-                  <option value="Energía">Energía (costo: 3/unidad)</option>
-                  <option value="Presupuesto">Industria (genera presupuesto)</option>
+                  {opcionesRecursos.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
                 </select>
               </div>
-              <div className="modal-campo">
-                <label className="modal-label">CANTIDAD REQUERIDA</label>
-                <input
-                  className="modal-input"
-                  type="number"
-                  min={1}
-                  max={Math.min(100, estadoData ? Math.floor(estadoData.presupuesto / 3) : 33)}
-                  value={invertirCantidad}
-                  onChange={(e) => setInvertirCantidad(Number(e.target.value))}
-                />
+
+              {esDistribucion && (
+                <div className="modal-campo">
+                  <label className="modal-label">MEDIO DE TRANSPORTE</label>
+                  <select
+                    className="modal-select"
+                    value={transporteModo}
+                    onChange={(e) => setTransporteModo(e.target.value)}
+                  >
+                    {Object.entries(costosBeneficios.Distribución.modos).map(([modo, data]) => (
+                      <option key={modo} value={modo}>
+                        {modo} ({data.costoPresupuesto}x costo / {data.beneficio}x efectividad)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="inv-cb-grid">
+                <div className="inv-cb-column inv-cb-consume">
+                  <div className="inv-cb-header inv-cb-header-consume">
+                    ⚠️ SE CONSUMIRÁ
+                  </div>
+                  {Object.entries(reglasActuales.consume).map(([recurso, costo]) => {
+                    let finalCosto = costo;
+                    if (multTransporte && recurso === 'Presupuesto') {
+                      finalCosto = Math.round(costo * multTransporte.costoPresupuesto);
+                    }
+                    return (
+                      <div key={recurso} className="inv-cb-row">
+                        <span className="inv-cb-recurso">{recurso}</span>
+                        <span className="inv-cb-num inv-cb-num-consume">-{finalCosto}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="inv-cb-column inv-cb-genera">
+                  <div className="inv-cb-header inv-cb-header-genera">
+                    ✅ SE GENERARÁ
+                  </div>
+                  {Object.entries(reglasActuales.genera).map(([recurso, beneficio]) => {
+                    let finalBene = beneficio;
+                    if (multTransporte && recurso !== 'Bienestar') {
+                      finalBene = Math.round(beneficio * multTransporte.beneficio);
+                    }
+                    return (
+                      <div key={recurso} className="inv-cb-row">
+                        <span className="inv-cb-recurso">{recurso}</span>
+                        <span className="inv-cb-num inv-cb-num-genera">+{finalBene}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
+
+              <div className="modal-desc inv-cb-aviso">
+                {estadoData && estadoData.presupuesto < (multTransporte
+                  ? Math.round(reglasActuales.consume.Presupuesto * multTransporte.costoPresupuesto)
+                  : reglasActuales.consume.Presupuesto) ? (
+                  <span className="inv-cb-insuficiente">⚠️ PRESUPUESTO INSUFICIENTE</span>
+                ) : (
+                  <span>Presupuesto disponible: <strong>${estadoData ? estadoData.presupuesto : 0}M</strong></span>
+                )}
+              </div>
+
               <div className="modal-accion">
-                <button className="btn btn-primario" onClick={confirmarInversion}>
-                  CONFIRMAR INVERSIÓN
+                <button
+                  className="btn btn-invertir"
+                  disabled={estadoData && estadoData.presupuesto < (multTransporte
+                    ? Math.round(reglasActuales.consume.Presupuesto * multTransporte.costoPresupuesto)
+                    : reglasActuales.consume.Presupuesto)}
+                  onClick={confirmarInversion}
+                >
+                  ⚡ AUTORIZAR INVERSIÓN
                 </button>
               </div>
             </div>
@@ -166,6 +274,27 @@ function Controles({ estadoSeleccionado }) {
                       <div className="analisis-bar-fill" style={{ width: `${estadoData.recursos.sostenibilidad}%`, background: '#00e676' }} />
                     </div>
                     <span className="analisis-valor">{Math.round(estadoData.recursos.sostenibilidad)}%</span>
+                  </div>
+                  <div className="analisis-item">
+                    <span className="analisis-label">INFRAESTRUCTURA</span>
+                    <div className="analisis-bar-bg">
+                      <div className="analisis-bar-fill" style={{ width: `${estadoData.recursos.infraestructura}%`, background: '#88C440' }} />
+                    </div>
+                    <span className="analisis-valor">{Math.round(estadoData.recursos.infraestructura)}%</span>
+                  </div>
+                  <div className="analisis-item">
+                    <span className="analisis-label">D. SOCIAL Y CULTURAL</span>
+                    <div className="analisis-bar-bg">
+                      <div className="analisis-bar-fill" style={{ width: `${estadoData.recursos.desarrolloSociocultural}%`, background: '#ce93d8' }} />
+                    </div>
+                    <span className="analisis-valor">{Math.round(estadoData.recursos.desarrolloSociocultural)}%</span>
+                  </div>
+                  <div className="analisis-item">
+                    <span className="analisis-label">DISTRIBUCIÓN</span>
+                    <div className="analisis-bar-bg">
+                      <div className="analisis-bar-fill" style={{ width: `${estadoData.recursos.distribucion}%`, background: '#81d4fa' }} />
+                    </div>
+                    <span className="analisis-valor">{Math.round(estadoData.recursos.distribucion)}%</span>
                   </div>
                   <div className="analisis-divider" />
                   <div className="analisis-item">
