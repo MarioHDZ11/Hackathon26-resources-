@@ -211,43 +211,116 @@ body {
 }
 
 .estado-path {
+  fill: #06170f;
   stroke: #0e2a1a;
-  stroke-width: 1.5;
+  stroke-width: 1.2;
   stroke-linejoin: round;
-  transition:
-    fill 0.25s ease,
-    stroke 0.25s ease,
-    transform 0.60s ease;
+  transition: all var(--anim-speed, 0.3s) ease-in-out;
   cursor: pointer;
   transform-origin: center;
   transform-box: fill-box;
 }
 
-.estado-path:hover {
-  stroke: #88C440;
-  stroke-width: 1.5;
-  transform: scale(1.12);
-  filter:
-    drop-shadow(0 0 4px rgba(136, 196, 64, 0.6))
-    drop-shadow(0 0 12px rgba(136, 196, 64, 0.3));
+/* ── Bienestar classes (base) ── */
+.estado-alerta {
+  fill: rgba(90, 20, 38, 0.25);
+  stroke: #ff0055;
+  filter: drop-shadow(0 0 4px rgba(255, 0, 85, 0.4));
+}
+.estado-riesgo {
+  fill: rgba(80, 70, 10, 0.25);
+  stroke: #ffff00;
+  filter: drop-shadow(0 0 4px rgba(255, 255, 0, 0.4));
+}
+.estado-estable {
+  fill: rgba(18, 72, 12, 0.25);
+  stroke: #39ff14;
+  filter: drop-shadow(0 0 4px rgba(57, 255, 20, 0.4));
+}
+.estado-optimo {
+  fill: rgba(8, 65, 65, 0.25);
+  stroke: #00ffff;
+  filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.4));
 }
 
-.estado-hovered {
-  stroke: #9ed958;
-  stroke-width: 1.8;
-  transform: scale(1.12);
-  filter:
-    drop-shadow(0 0 4px rgba(136, 196, 64, 0.7))
-    drop-shadow(0 0 12px rgba(136, 196, 64, 0.4));
-}
-
-.estado-selected {
-  stroke: #88C440;
+/* ── Hover — fill mate sólido, stroke neón se intensifica ── */
+.estado-alerta:hover,
+.estado-alerta.estado-hovered {
+  fill: rgb(90, 20, 38);
+  stroke: #ff0055;
   stroke-width: 2;
+  transform: scale(1.12);
+  filter:
+    drop-shadow(0 0 6px rgba(255, 0, 85, var(--shadow-intensity, 0.7)))
+    drop-shadow(0 0 25px rgba(255, 0, 85, calc(var(--shadow-intensity, 0.7) * 0.5)));
+}
+.estado-riesgo:hover,
+.estado-riesgo.estado-hovered {
+  fill: rgb(80, 70, 10);
+  stroke: #ffff00;
+  stroke-width: 2;
+  transform: scale(1.12);
+  filter:
+    drop-shadow(0 0 6px rgba(255, 255, 0, var(--shadow-intensity, 0.7)))
+    drop-shadow(0 0 25px rgba(255, 255, 0, calc(var(--shadow-intensity, 0.7) * 0.5)));
+}
+.estado-estable:hover,
+.estado-estable.estado-hovered {
+  fill: rgb(18, 72, 12);
+  stroke: #39ff14;
+  stroke-width: 2;
+  transform: scale(1.12);
+  filter:
+    drop-shadow(0 0 6px rgba(57, 255, 20, var(--shadow-intensity, 0.7)))
+    drop-shadow(0 0 25px rgba(57, 255, 20, calc(var(--shadow-intensity, 0.7) * 0.5)));
+}
+.estado-optimo:hover,
+.estado-optimo.estado-hovered {
+  fill: rgb(8, 65, 65);
+  stroke: #00ffff;
+  stroke-width: 2;
+  transform: scale(1.12);
+  filter:
+    drop-shadow(0 0 6px rgba(0, 255, 255, var(--shadow-intensity, 0.7)))
+    drop-shadow(0 0 25px rgba(0, 255, 255, calc(var(--shadow-intensity, 0.7) * 0.5)));
+}
+
+/* ── Selected ── */
+.estado-alerta.estado-selected {
+  fill: rgb(90, 20, 38);
+  stroke: #ff0055;
+  stroke-width: 2.5;
   transform: scale(1.06);
   filter:
-    drop-shadow(0 0 4px rgba(136, 196, 64, 0.5))
-    drop-shadow(0 0 12px rgba(136, 196, 64, 0.3));
+    drop-shadow(0 0 8px rgba(255, 0, 85, var(--shadow-intensity, 0.8)))
+    drop-shadow(0 0 30px rgba(255, 0, 85, calc(var(--shadow-intensity, 0.8) * 0.4)));
+}
+.estado-riesgo.estado-selected {
+  fill: rgb(80, 70, 10);
+  stroke: #ffff00;
+  stroke-width: 2.5;
+  transform: scale(1.06);
+  filter:
+    drop-shadow(0 0 8px rgba(255, 255, 0, var(--shadow-intensity, 0.8)))
+    drop-shadow(0 0 30px rgba(255, 255, 0, calc(var(--shadow-intensity, 0.8) * 0.4)));
+}
+.estado-estable.estado-selected {
+  fill: rgb(18, 72, 12);
+  stroke: #39ff14;
+  stroke-width: 2.5;
+  transform: scale(1.06);
+  filter:
+    drop-shadow(0 0 8px rgba(57, 255, 20, var(--shadow-intensity, 0.8)))
+    drop-shadow(0 0 30px rgba(57, 255, 20, calc(var(--shadow-intensity, 0.8) * 0.4)));
+}
+.estado-optimo.estado-selected {
+  fill: rgb(8, 65, 65);
+  stroke: #00ffff;
+  stroke-width: 2.5;
+  transform: scale(1.06);
+  filter:
+    drop-shadow(0 0 8px rgba(0, 255, 255, var(--shadow-intensity, 0.8)))
+    drop-shadow(0 0 30px rgba(0, 255, 255, calc(var(--shadow-intensity, 0.8) * 0.4)));
 }
 
 .tablero-footer {
@@ -278,6 +351,11 @@ body {
   border-radius: 50%;
   display: inline-block;
 }
+
+.leyenda-dot.estado-alerta { background-color: #ff0055; }
+.leyenda-dot.estado-riesgo { background-color: #ffff00; }
+.leyenda-dot.estado-estable { background-color: #39ff14; }
+.leyenda-dot.estado-optimo { background-color: #00ffff; }
 
 .leyenda-label {
   font-size: 10px;
@@ -1134,4 +1212,126 @@ body {
   border-color: #14261c !important;
   background: #0a120e !important;
   color: #4a5a4a !important;
+}
+
+/* ── Tooltip del estado (símbolo + info) ── */
+.estado-tooltip {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+  z-index: 100;
+  animation: tooltip-entrada 0.3s ease-out;
+  transform: translateX(-50%);
+}
+
+@keyframes tooltip-entrada {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.estado-tooltip-simbolo {
+  font-size: 32px;
+  line-height: 1;
+  filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.5));
+  animation: simbolo-flotar 2s ease-in-out infinite;
+}
+
+@keyframes simbolo-flotar {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.estado-tooltip-info {
+  background: rgba(6, 10, 8, 0.92);
+  border: 1px solid #1a3a24;
+  border-radius: 6px;
+  padding: 8px 12px;
+  max-width: 220px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.6);
+}
+
+.estado-tooltip-nombre {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #e8f5e9;
+  margin-bottom: 3px;
+}
+
+.estado-tooltip-desc {
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: #8a9a8a;
+  line-height: 1.4;
+}
+
+/* ── Controles del mapa (suavidad, sombra) ── */
+.mapa-controles {
+  display: flex;
+  gap: 16px;
+  padding: 8px 0;
+  width: 100%;
+  max-width: 820px;
+  justify-content: center;
+}
+
+.mapa-control-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 140px;
+}
+
+.mapa-control-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: #5a6a5a;
+  font-weight: 600;
+}
+
+.mapa-control-label span {
+  color: #88C440;
+  font-weight: 700;
+}
+
+.mapa-control-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: #070d0a;
+  border: 1px solid #14261c;
+  border-radius: 2px;
+  outline: none;
+}
+
+.mapa-control-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #88C440;
+  cursor: pointer;
+  border: 2px solid #070d0a;
+  box-shadow: 0 0 4px rgba(136, 196, 64, 0.4);
+}
+
+.mapa-control-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #88C440;
+  cursor: pointer;
+  border: 2px solid #070d0a;
 }

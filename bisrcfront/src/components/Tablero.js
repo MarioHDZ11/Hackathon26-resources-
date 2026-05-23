@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useGameState } from '../context/GameStateContext';
+import simbolos from '../data/simbolos';
 
-function bienestarToColor(bienestar) {
-  if (bienestar < 25) return '#ff1744';
-  if (bienestar < 45) return '#ff9100';
-  if (bienestar < 60) return '#ffea00';
-  if (bienestar < 75) return '#88C440';
-  return '#00e676';
+function obtenerClaseBienestar(porcentaje) {
+  if (porcentaje <= 25) return 'estado-alerta';
+  if (porcentaje <= 50) return 'estado-riesgo';
+  if (porcentaje <= 75) return 'estado-estable';
+  return 'estado-optimo';
 }
 
 const estados = [
@@ -259,6 +259,52 @@ function getMunicipios(estado) {
 function Tablero({ estadoSeleccionado, setEstadoSeleccionado }) {
   const gameState = useGameState();
   const [hovered, setHovered] = useState(null);
+  const [hoveredInfo, setHoveredInfo] = useState(null);
+  const [animSpeed, setAnimSpeed] = useState(0.3);
+  const [shadowIntensity, setShadowIntensity] = useState(0.7);
+  const svgRef = useRef(null);
+  const hoverTimeout = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+    };
+  }, []);
+
+  function handleMouseEnter(e, estado) {
+    setHovered(estado.name);
+    if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
+    if (svgRef.current) {
+      const pathEl = document.getElementById(estado.id);
+      if (pathEl) {
+        const pathRect = pathEl.getBoundingClientRect();
+        const containerRect = svgRef.current
+          .closest('.mapa-contenedor')
+          .getBoundingClientRect();
+        const x = pathRect.left + pathRect.width / 2 - containerRect.left;
+        const y = pathRect.top - containerRect.top;
+        const sim = simbolos[estado.id];
+        if (sim) {
+          setHoveredInfo({
+            name: estado.name,
+            id: estado.id,
+            simbolo: sim.simbolo,
+            descripcion: sim.descripcion,
+            x,
+            y,
+            w: pathRect.width,
+          });
+        }
+      }
+    }
+  }
+
+  function handleMouseLeave() {
+    setHovered(null);
+    hoverTimeout.current = setTimeout(() => {
+      setHoveredInfo(null);
+    }, 400);
+  }
 
   const municipios = estadoSeleccionado ? getMunicipios(estadoSeleccionado) : [];
 
@@ -277,11 +323,16 @@ function Tablero({ estadoSeleccionado, setEstadoSeleccionado }) {
       </div>
       <div className="tablero-cuerpo">
         <div className="tablero-col-mapa">
-          <div className="mapa-contenedor">
+          <div className="mapa-contenedor" style={{ position: 'relative', overflow: 'visible' }}>
             <svg
+              ref={svgRef}
               viewBox="0 0 793 498"
               className="mapa-svg"
               xmlns="http://www.w3.org/2000/svg"
+              style={{
+                '--anim-speed': `${animSpeed}s`,
+                '--shadow-intensity': shadowIntensity,
+              }}
             >
               {[...estados].sort((a, b) => {
                 const aH = a.name === hovered || a.name === estadoSeleccionado ? 1 : 0;
@@ -291,29 +342,71 @@ function Tablero({ estadoSeleccionado, setEstadoSeleccionado }) {
                 const eData = gameState.estados[e.id];
                 const isHovered = hovered === e.name;
                 const isSelected = estadoSeleccionado === e.name;
-                let fillColor;
-                if (isSelected) fillColor = '#0f301e';
-                else if (isHovered) fillColor = '#0a261a';
-                else fillColor = eData ? bienestarToColor(eData.bienestar) : '#06170f';
+                const claseBienestar = eData ? obtenerClaseBienestar(eData.bienestar) : '';
                 return (
                 <path
                   key={e.id}
                   id={e.id}
                   name={e.name}
                   d={e.d}
-                  style={{ fill: fillColor }}
                   className={[
                     'estado-path',
+                    claseBienestar,
                     isHovered ? 'estado-hovered' : '',
                     isSelected ? 'estado-selected' : '',
                   ].filter(Boolean).join(' ')}
-                  onMouseEnter={() => setHovered(e.name)}
-                  onMouseLeave={() => setHovered(null)}
+                  onMouseEnter={(ev) => handleMouseEnter(ev, e)}
+                  onMouseLeave={handleMouseLeave}
                   onClick={() => setEstadoSeleccionado(estadoSeleccionado === e.name ? null : e.name)}
                 />
                 );
               })}
             </svg>
+            {hoveredInfo && (
+              <div
+                className="estado-tooltip"
+                style={{
+                  left: hoveredInfo.x,
+                  top: hoveredInfo.y - 60,
+                }}
+              >
+                <div className="estado-tooltip-simbolo">{hoveredInfo.simbolo}</div>
+                <div className="estado-tooltip-info">
+                  <div className="estado-tooltip-nombre">{hoveredInfo.name}</div>
+                  <div className="estado-tooltip-desc">{hoveredInfo.descripcion}</div>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="mapa-controles">
+            <div className="mapa-control-item">
+              <label className="mapa-control-label">
+                SUAVIDAD <span>{animSpeed.toFixed(1)}s</span>
+              </label>
+              <input
+                type="range"
+                min="0.1"
+                max="1.0"
+                step="0.05"
+                value={animSpeed}
+                onChange={(e) => setAnimSpeed(parseFloat(e.target.value))}
+                className="mapa-control-slider"
+              />
+            </div>
+            <div className="mapa-control-item">
+              <label className="mapa-control-label">
+                SOMBRA <span>{Math.round(shadowIntensity * 100)}%</span>
+              </label>
+              <input
+                type="range"
+                min="0.1"
+                max="1.0"
+                step="0.05"
+                value={shadowIntensity}
+                onChange={(e) => setShadowIntensity(parseFloat(e.target.value))}
+                className="mapa-control-slider"
+              />
+            </div>
           </div>
           <div className="panel-nacional">
             <div className="panel-nacional-header">
@@ -364,13 +457,13 @@ function Tablero({ estadoSeleccionado, setEstadoSeleccionado }) {
             <div className="tablero-footer">
               <div className="tablero-leyenda">
                 {[
-                  { color: '#ff1744', label: 'ALERTA' },
-                  { color: '#ffea00', label: 'EN RIESGO' },
-                  { color: '#00e676', label: 'ESTABLE' },
-                  { color: '#00b0ff', label: 'ÓPTIMO' },
+                  { clase: 'estado-alerta', label: 'ALERTA' },
+                  { clase: 'estado-riesgo', label: 'EN RIESGO' },
+                  { clase: 'estado-estable', label: 'ESTABLE' },
+                  { clase: 'estado-optimo', label: 'ÓPTIMO' },
                 ].map((l) => (
                   <div key={l.label} className="leyenda-item">
-                    <span className="leyenda-dot" style={{ backgroundColor: l.color }} />
+                    <span className={`leyenda-dot ${l.clase}`} />
                     <span className="leyenda-label">{l.label}</span>
                   </div>
                 ))}
