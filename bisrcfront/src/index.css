@@ -1,13 +1,23 @@
+/* 1. Importamos las fuentes desde Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Inter:wght@300;400;500&display=swap');
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  /* 2. Aplicamos 'Inter' como fuente principal y 'Montserrat' como alternativa fuerte */
+  font-family: 'Inter', 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #ffffff; /* Color base estándar */
+  color: #333333;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+/* 3. Sugerencia adicional para tus títulos (H1, H2, etc.) */
+h1, h2, h3, .titulo-logo {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700; /* Hace la letra gruesa y robusta como la del logo */
+  letter-spacing: -0.5px; /* Junta un poco las letras para emular el estilo del logo */
 }
