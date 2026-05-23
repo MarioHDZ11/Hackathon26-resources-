@@ -1,12 +1,11 @@
-import React, { createContext, useContext, useReducer, useEffect, useRef, useState } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useRef } from 'react';
 import { estadosInicial, calcularFederales } from '../data/initialState';
-import { fetchUltimaPartida, crearPartidaEnBackend, actualizarPartidaEnBackend, partidaToFrontendState, partidaToFrontendFederales } from '../services/apiService';
+import { fetchInitialGameState } from '../services/api';
 
 const GameStateContext = createContext(null);
 
 const FACTOR_CONSUMO = 0.00000015;
 const TICK_INTERVAL = 10000;
-const SYNC_DEBOUNCE = 5000;
 
 function copiarEstado(estados) {
   const copia = {};
@@ -140,80 +139,38 @@ function gameReducer(state, action) {
 
 export function GameStateProvider({ children }) {
   const [state, dispatch] = useReducer(gameReducer, null, initialState);
-  const partidaIdRef = useRef(null);
   const stateRef = useRef(state);
   const tickRef = useRef(null);
-  const syncTimerRef = useRef(null);
-  const [config, setConfig] = useState({ backendDisponible: false, cargando: true });
 
   stateRef.current = state;
-
-  useEffect(() => {
-    tickRef.current = setInterval(() => {
-      dispatch({ type: 'TICK' });
-    }, TICK_INTERVAL);
-    return () => clearInterval(tickRef.current);
-  }, []);
 
   useEffect(() => {
     let cancel = false;
 
     async function init() {
-      const partida = await fetchUltimaPartida();
-      if (cancel) return;
-
-      if (partida && partida.estadosPartida && partida.estadosPartida.length > 0) {
-        const { estados, tickCount } = partidaToFrontendState(partida);
-        const federal = partidaToFrontendFederales(partida);
-        dispatch({
-          type: 'LOAD_FROM_BACKEND',
-          payload: { estados, tickCount, federal },
-        });
-        partidaIdRef.current = partida.idPartida;
-        setConfig({ backendDisponible: true, cargando: false });
-      } else {
-        const creada = await crearPartidaEnBackend(
-          stateRef.current.estados,
-          stateRef.current.tickCount
-        );
+      try {
+        const gameState = await fetchInitialGameState();
         if (cancel) return;
-        if (creada) {
-          partidaIdRef.current = creada.idPartida;
-          setConfig({ backendDisponible: true, cargando: false });
-        } else {
-          setConfig({ backendDisponible: false, cargando: false });
+        if (gameState && gameState.estados) {
+          dispatch({
+            type: 'LOAD_FROM_BACKEND',
+            payload: { estados: gameState.estados, tickCount: 0, federal: gameState.federal },
+          });
         }
+      } catch (err) {
+        console.error('Error al cargar estado inicial del backend, usando datos locales:', err);
+        if (cancel) return;
       }
     }
 
     init();
-    return () => { cancel = true; };
+    const tick = setInterval(() => dispatch({ type: 'TICK' }), TICK_INTERVAL);
+    tickRef.current = tick;
+    return () => { cancel = true; clearInterval(tick); };
   }, []);
 
-  useEffect(() => {
-    if (!config.backendDisponible || !partidaIdRef.current) return;
-
-    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
-
-    syncTimerRef.current = setTimeout(async () => {
-      await actualizarPartidaEnBackend(
-        partidaIdRef.current,
-        stateRef.current.estados,
-        stateRef.current.tickCount
-      );
-    }, SYNC_DEBOUNCE);
-
-    return () => {
-      if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
-    };
-  }, [state.tickCount, config.backendDisponible]);
-
-  const dispatchConSync = (action) => {
-    dispatch(action);
-  };
-
   return (
-    <GameStateContext.Provider value={{ state, dispatch: dispatchConSync, config }}>
+    <GameStateContext.Provider value={{ state, dispatch }}>
       {children}
     </GameStateContext.Provider>
   );
@@ -231,8 +188,4 @@ export function useGameDispatch() {
   return ctx.dispatch;
 }
 
-export function useBackendConfig() {
-  const ctx = useContext(GameStateContext);
-  if (!ctx) throw new Error('useBackendConfig must be used within GameStateProvider');
-  return ctx.config;
-}
+

@@ -1,0 +1,9 @@
+node_modules/
+build/
+dist/
+.env
+*.log
+*.err
+backend/target/
+backend.backend.log
+backend.backend.err

@@ -1,0 +1,11 @@
+-- ============================================================================
+-- BISourcesMX - SVG Path Data Import
+-- Populates svg_path for each state. Copy the d attribute values from
+-- the frontend's Tablero.js estados array into the appropriate id_estado.
+-- ============================================================================
+-- NOTE: This is a template. The actual SVG paths are very long strings.
+-- Run the backend application with DataLoader to auto-populate these.
+--
+-- Example:
+-- UPDATE estados SET svg_path = 'M 390.52786,309.79244 ...' WHERE id_estado = 1;
+-- ============================================================================

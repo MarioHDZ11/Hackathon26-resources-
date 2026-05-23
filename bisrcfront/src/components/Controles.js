@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useGameState, useGameDispatch } from '../context/GameStateContext';
+import { fetchGameConfig } from '../services/api';
 
-const entidades = [
+const defaultEntidades = [
   "CDMX", "Jalisco", "Nuevo León", "Gobierno Federal",
   "ONU", "Cruz Roja", "Comisión de Agua", "SEDENA"
 ];
 
-const costosBeneficios = {
+const defaultCostosBeneficios = {
   'Agua': {
     consume: { Presupuesto: 30, Sostenibilidad: 2 },
     genera: { Agua: 15, Bienestar: 2 },
@@ -46,12 +47,50 @@ const costosBeneficios = {
   },
 };
 
-const opcionesRecursos = Object.keys(costosBeneficios);
+function mapApiKeyToDisplay(key) {
+  const map = {
+    'Agua': 'Agua',
+    'Energia': 'Energía',
+    'Alimento': 'Alimento',
+    'Salud': 'Salud',
+    'Infraestructura': 'Infraestructura',
+    'D. Social y Cultural': 'D. Social y Cultural',
+    'Sostenibilidad': 'Sostenibilidad',
+    'Distribucion': 'Distribución',
+  };
+  return map[key] || key;
+}
 
 function Controles({ estadoSeleccionado }) {
   const state = useGameState();
   const dispatch = useGameDispatch();
   const [modal, setModal] = useState(null);
+
+  const [entidades, setEntidades] = useState(defaultEntidades);
+  const [costosBeneficios, setCostosBeneficios] = useState(defaultCostosBeneficios);
+
+  useEffect(() => {
+    fetchGameConfig().then((config) => {
+      if (config.entities) setEntidades(config.entities);
+      if (config.investmentRules) {
+        const mapped = {};
+        for (const [key, rule] of Object.entries(config.investmentRules)) {
+          const displayKey = mapApiKeyToDisplay(key);
+          mapped[displayKey] = {
+            consume: rule.consume || {},
+            genera: rule.genera || {},
+            modos: rule.modos || undefined,
+          };
+          if (mapped[displayKey].genera && Object.keys(mapped[displayKey].genera).length > 0) {
+            mapped[displayKey].genera.Bienestar = key === 'Salud' || key === 'Infraestructura' || key === 'Sostenibilidad' ? 3 : 2;
+          } else {
+            mapped[displayKey].genera = { Bienestar: 6 };
+          }
+        }
+        setCostosBeneficios(mapped);
+      }
+    }).catch(() => {});
+  }, []);
 
   const [invertirRecurso, setInvertirRecurso] = useState("Agua");
   const [transporteModo, setTransporteModo] = useState("Terrestre");
@@ -72,6 +111,8 @@ function Controles({ estadoSeleccionado }) {
   const multTransporte = esDistribucion && transporteModo
     ? costosBeneficios.Distribución.modos[transporteModo]
     : null;
+
+  const opcionesRecursos = Object.keys(costosBeneficios);
 
   function cerrarModal() {
     setModal(null);
@@ -154,7 +195,7 @@ function Controles({ estadoSeleccionado }) {
                     value={transporteModo}
                     onChange={(e) => setTransporteModo(e.target.value)}
                   >
-                    {Object.entries(costosBeneficios.Distribución.modos).map(([modo, data]) => (
+                    {costosBeneficios.Distribución && Object.entries(costosBeneficios.Distribución.modos || {}).map(([modo, data]) => (
                       <option key={modo} value={modo}>
                         {modo} ({data.costoPresupuesto}x costo / {data.beneficio}x efectividad)
                       </option>
@@ -168,7 +209,7 @@ function Controles({ estadoSeleccionado }) {
                   <div className="inv-cb-header inv-cb-header-consume">
                     ⚠️ SE CONSUMIRÁ
                   </div>
-                  {Object.entries(reglasActuales.consume).map(([recurso, costo]) => {
+                  {reglasActuales && Object.entries(reglasActuales.consume).map(([recurso, costo]) => {
                     let finalCosto = costo;
                     if (multTransporte && recurso === 'Presupuesto') {
                       finalCosto = Math.round(costo * multTransporte.costoPresupuesto);
@@ -185,7 +226,7 @@ function Controles({ estadoSeleccionado }) {
                   <div className="inv-cb-header inv-cb-header-genera">
                     ✅ SE GENERARÁ
                   </div>
-                  {Object.entries(reglasActuales.genera).map(([recurso, beneficio]) => {
+                  {reglasActuales && Object.entries(reglasActuales.genera).map(([recurso, beneficio]) => {
                     let finalBene = beneficio;
                     if (multTransporte && recurso !== 'Bienestar') {
                       finalBene = Math.round(beneficio * multTransporte.beneficio);
@@ -201,7 +242,7 @@ function Controles({ estadoSeleccionado }) {
               </div>
 
               <div className="modal-desc inv-cb-aviso">
-                {estadoData && estadoData.presupuesto < (multTransporte
+                {estadoData && reglasActuales && estadoData.presupuesto < (multTransporte
                   ? Math.round(reglasActuales.consume.Presupuesto * multTransporte.costoPresupuesto)
                   : reglasActuales.consume.Presupuesto) ? (
                   <span className="inv-cb-insuficiente">⚠️ PRESUPUESTO INSUFICIENTE</span>
@@ -213,7 +254,7 @@ function Controles({ estadoSeleccionado }) {
               <div className="modal-accion">
                 <button
                   className="btn btn-invertir"
-                  disabled={estadoData && estadoData.presupuesto < (multTransporte
+                  disabled={estadoData && reglasActuales && estadoData.presupuesto < (multTransporte
                     ? Math.round(reglasActuales.consume.Presupuesto * multTransporte.costoPresupuesto)
                     : reglasActuales.consume.Presupuesto)}
                   onClick={confirmarInversion}

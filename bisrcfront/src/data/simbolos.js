@@ -1,36 +1,63 @@
-const simbolos = {
-  agu: { simbolo: '🏭', descripcion: 'Principal centro automotriz y tecnológico del país.' },
-  bcn: { simbolo: '🎬', descripcion: 'Capital de la industria cinematográfica mexicana.' },
-  bcs: { simbolo: '🐋', descripcion: 'Santuario de la ballena gris, Patrimonio de la Humanidad.' },
-  cam: { simbolo: '🏰', descripcion: 'Zona arqueológica maya y ciudad amurallada.' },
-  chp: { simbolo: '🌿', descripcion: 'Mayor productor de café de altura en México.' },
-  chh: { simbolo: '🌰', descripcion: 'Principal exportador de nuez a nivel nacional.' },
-  coa: { simbolo: '🍇', descripcion: 'Región vitivinícola más importante de Latinoamérica.' },
-  col: { simbolo: '🌋', descripcion: 'Hogar del Volcán de Fuego, el más activo de México.' },
-  dur: { simbolo: '🤠', descripcion: 'Cuna del cine mexicano y la charrería.' },
-  gua: { simbolo: '🪙', descripcion: 'Mayor productor de plata en la historia de México.' },
-  gro: { simbolo: '🏖️', descripcion: 'Icónico destino turístico de playa Acapulco.' },
-  hid: { simbolo: '⛏️', descripcion: 'Rica en minería de plata y cantera rosa.' },
-  jal: { simbolo: '🌵', descripcion: 'Cuna del tequila y el mariachi, Patrimonio Mundial.' },
-  cmx: { simbolo: '🏛️', descripcion: 'Capital del país, centro político y cultural de México.' },
-  mex: { simbolo: '🏗️', descripcion: 'Estado más poblado, motor industrial del país.' },
-  mic: { simbolo: '🦋', descripcion: 'Santuario de la Mariposa Monarca, Biosfera UNESCO.' },
-  mor: { simbolo: '🌺', descripcion: 'Tierra de jardines y tradición floral.' },
-  nay: { simbolo: '🌴', descripcion: 'Riviera Nayarit, paraíso del surf y ecoturismo.' },
-  nle: { simbolo: '🏭', descripcion: 'Potencia industrial con la mayor competitividad del país.' },
-  oax: { simbolo: '🏺', descripcion: 'Capital mundial del mezcal y la artesanía textil.' },
-  pue: { simbolo: '🎆', descripcion: 'Cuna de la Talavera y la cocina mestiza mexicana.' },
-  que: { simbolo: '🚀', descripcion: 'Hub aeroespacial y de innovación tecnológica.' },
-  roo: { simbolo: '🐠', descripcion: 'Arrecife Mesoamericano, segundo más grande del mundo.' },
-  slp: { simbolo: '🪨', descripcion: 'Histórica zona minera de oro y zinc.' },
-  sin: { simbolo: '🐟', descripcion: 'Mayor productor pesquero de camarón del país.' },
-  son: { simbolo: '🐄', descripcion: 'Líder nacional en producción ganadera.' },
-  tab: { simbolo: '🍫', descripcion: 'Cuna del cacao y la cultura olmeca.' },
-  tam: { simbolo: '🌾', descripcion: 'Gran productor de sorgo y maíz del norte.' },
-  tla: { simbolo: '🧶', descripcion: 'Famoso por sus textiles artesanales de sarapes.' },
-  ver: { simbolo: '☕', descripcion: 'Principal productor de café y vainilla de México.' },
-  yuc: { simbolo: '🏛️', descripcion: 'Chichén Itzá, Maravilla del Mundo Moderno.' },
-  zac: { simbolo: '🪙', descripcion: 'Histórico centro minero de plata y zinc.' },
-};
+import { fetchEstados } from '../services/api';
 
-export default simbolos;
+let cachedSimbolos = null;
+
+export async function loadSimbolos() {
+  if (cachedSimbolos) return cachedSimbolos;
+  try {
+    const estados = await fetchEstados();
+    const simbolos = {};
+    for (const e of estados) {
+      simbolos[e.id] = {
+        simbolo: e.simbolo || '🏛️',
+        descripcion: e.descripcion || '',
+      };
+    }
+    cachedSimbolos = simbolos;
+    return simbolos;
+  } catch (err) {
+    console.warn('Failed to fetch symbols from API, using fallback');
+    const fallback = getFallback();
+    cachedSimbolos = fallback;
+    return fallback;
+  }
+}
+
+function getFallback() {
+  return {
+    agu: { simbolo: '🏭', descripcion: 'Principal centro automotriz y tecnológico del país.' },
+    bcn: { simbolo: '🎬', descripcion: 'Capital de la industria cinematográfica mexicana.' },
+    bcs: { simbolo: '🐋', descripcion: 'Santuario de la ballena gris, Patrimonio de la Humanidad.' },
+    cam: { simbolo: '🏰', descripcion: 'Zona arqueológica maya y ciudad amurallada.' },
+    chp: { simbolo: '🌿', descripcion: 'Mayor productor de café de altura en México.' },
+    chh: { simbolo: '🌰', descripcion: 'Principal exportador de nuez a nivel nacional.' },
+    coa: { simbolo: '🍇', descripcion: 'Región vitivinícola más importante de Latinoamérica.' },
+    col: { simbolo: '🌋', descripcion: 'Hogar del Volcán de Fuego, el más activo de México.' },
+    dur: { simbolo: '🤠', descripcion: 'Cuna del cine mexicano y la charrería.' },
+    gua: { simbolo: '🪙', descripcion: 'Mayor productor de plata en la historia de México.' },
+    gro: { simbolo: '🏖️', descripcion: 'Icónico destino turístico de playa Acapulco.' },
+    hid: { simbolo: '⛏️', descripcion: 'Rica en minería de plata y cantera rosa.' },
+    jal: { simbolo: '🌵', descripcion: 'Cuna del tequila y el mariachi, Patrimonio Mundial.' },
+    cmx: { simbolo: '🏛️', descripcion: 'Capital del país, centro político y cultural de México.' },
+    mex: { simbolo: '🏗️', descripcion: 'Estado más poblado, motor industrial del país.' },
+    mic: { simbolo: '🦋', descripcion: 'Santuario de la Mariposa Monarca, Biosfera UNESCO.' },
+    mor: { simbolo: '🌺', descripcion: 'Tierra de jardines y tradición floral.' },
+    nay: { simbolo: '🌴', descripcion: 'Riviera Nayarit, paraíso del surf y ecoturismo.' },
+    nle: { simbolo: '🏭', descripcion: 'Potencia industrial con la mayor competitividad del país.' },
+    oax: { simbolo: '🏺', descripcion: 'Capital mundial del mezcal y la artesanía textil.' },
+    pue: { simbolo: '🎆', descripcion: 'Cuna de la Talavera y la cocina mestiza mexicana.' },
+    que: { simbolo: '🚀', descripcion: 'Hub aeroespacial y de innovación tecnológica.' },
+    roo: { simbolo: '🐠', descripcion: 'Arrecife Mesoamericano, segundo más grande del mundo.' },
+    slp: { simbolo: '🪨', descripcion: 'Histórica zona minera de oro y zinc.' },
+    sin: { simbolo: '🐟', descripcion: 'Mayor productor pesquero de camarón del país.' },
+    son: { simbolo: '🐄', descripcion: 'Líder nacional en producción ganadera.' },
+    tab: { simbolo: '🍫', descripcion: 'Cuna del cacao y la cultura olmeca.' },
+    tam: { simbolo: '🌾', descripcion: 'Gran productor de sorgo y maíz del norte.' },
+    tla: { simbolo: '🧶', descripcion: 'Famoso por sus textiles artesanales de sarapes.' },
+    ver: { simbolo: '☕', descripcion: 'Principal productor de café y vainilla de México.' },
+    yuc: { simbolo: '🏛️', descripcion: 'Chichén Itzá, Maravilla del Mundo Moderno.' },
+    zac: { simbolo: '🪙', descripcion: 'Histórico centro minero de plata y zinc.' },
+  };
+}
+
+export default cachedSimbolos;
