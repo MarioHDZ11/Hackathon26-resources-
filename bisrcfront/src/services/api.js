@@ -1,32 +1,25 @@
+import axios from 'axios';
+
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8082/api';
 
-async function request(endpoint, options = {}) {
-  const url = `${API_URL}${endpoint}`;
-  const config = {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
-    ...options,
-  };
-  if (config.body && typeof config.body === 'object') {
-    config.body = JSON.stringify(config.body);
-  }
-  const res = await fetch(url, config);
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(error.error || `Error ${res.status}`);
-  }
-  if (res.status === 204) return null;
-  return res.json();
-}
+const apiClient = axios.create({
+  baseURL: API_URL,
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 15000,
+});
 
-export const api = {
-  getEstados: () => request('/estados'),
-  getEstado: (id) => request(`/estados/${id}`),
-  getRecursos: () => request('/recursos'),
-  getRecurso: (id) => request(`/recursos/${id}`),
-  getUltimaPartida: () => request('/partidas/ultima'),
-  getPartida: (id) => request(`/partidas/${id}`),
-  crearPartida: (data) => request('/partidas', { method: 'POST', body: data }),
-  actualizarPartida: (id, data) => request(`/partidas/${id}`, { method: 'PUT', body: data }),
-};
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      console.error(`API Error ${error.response.status}:`, error.response.data);
+    } else if (error.request) {
+      console.error('API no disponible:', error.message);
+    } else {
+      console.error('Error:', error.message);
+    }
+    return Promise.reject(error);
+  }
+);
 
-export default api;
+export default apiClient;

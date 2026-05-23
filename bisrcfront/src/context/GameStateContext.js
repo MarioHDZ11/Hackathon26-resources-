@@ -1,10 +1,12 @@
-import React, { createContext, useContext, useReducer, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useRef, useState } from 'react';
 import { estadosInicial, calcularFederales } from '../data/initialState';
+import { fetchUltimaPartida, crearPartidaEnBackend, actualizarPartidaEnBackend, partidaToFrontendState, partidaToFrontendFederales } from '../services/apiService';
 
 const GameStateContext = createContext(null);
 
 const FACTOR_CONSUMO = 0.00000015;
 const TICK_INTERVAL = 10000;
+const SYNC_DEBOUNCE = 5000;
 
 function copiarEstado(estados) {
   const copia = {};
@@ -34,6 +36,10 @@ function initialState() {
 
 function gameReducer(state, action) {
   switch (action.type) {
+    case 'LOAD_FROM_BACKEND': {
+      const { estados, tickCount, federal } = action.payload;
+      return { estados: copiarEstado(estados), ...federal, tickCount };
+    }
     case 'TICK': {
       const nuevos = copiarEstado(state.estados);
       for (const id in nuevos) {
@@ -134,7 +140,13 @@ function gameReducer(state, action) {
 
 export function GameStateProvider({ children }) {
   const [state, dispatch] = useReducer(gameReducer, null, initialState);
+  const partidaIdRef = useRef(null);
+  const stateRef = useRef(state);
   const tickRef = useRef(null);
+  const syncTimerRef = useRef(null);
+  const [config, setConfig] = useState({ backendDisponible: false, cargando: true });
+
+  stateRef.current = state;
 
   useEffect(() => {
     tickRef.current = setInterval(() => {
@@ -143,8 +155,65 @@ export function GameStateProvider({ children }) {
     return () => clearInterval(tickRef.current);
   }, []);
 
+  useEffect(() => {
+    let cancel = false;
+
+    async function init() {
+      const partida = await fetchUltimaPartida();
+      if (cancel) return;
+
+      if (partida && partida.estadosPartida && partida.estadosPartida.length > 0) {
+        const { estados, tickCount } = partidaToFrontendState(partida);
+        const federal = partidaToFrontendFederales(partida);
+        dispatch({
+          type: 'LOAD_FROM_BACKEND',
+          payload: { estados, tickCount, federal },
+        });
+        partidaIdRef.current = partida.idPartida;
+        setConfig({ backendDisponible: true, cargando: false });
+      } else {
+        const creada = await crearPartidaEnBackend(
+          stateRef.current.estados,
+          stateRef.current.tickCount
+        );
+        if (cancel) return;
+        if (creada) {
+          partidaIdRef.current = creada.idPartida;
+          setConfig({ backendDisponible: true, cargando: false });
+        } else {
+          setConfig({ backendDisponible: false, cargando: false });
+        }
+      }
+    }
+
+    init();
+    return () => { cancel = true; };
+  }, []);
+
+  useEffect(() => {
+    if (!config.backendDisponible || !partidaIdRef.current) return;
+
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+
+    syncTimerRef.current = setTimeout(async () => {
+      await actualizarPartidaEnBackend(
+        partidaIdRef.current,
+        stateRef.current.estados,
+        stateRef.current.tickCount
+      );
+    }, SYNC_DEBOUNCE);
+
+    return () => {
+      if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    };
+  }, [state.tickCount, config.backendDisponible]);
+
+  const dispatchConSync = (action) => {
+    dispatch(action);
+  };
+
   return (
-    <GameStateContext.Provider value={{ state, dispatch }}>
+    <GameStateContext.Provider value={{ state, dispatch: dispatchConSync, config }}>
       {children}
     </GameStateContext.Provider>
   );
@@ -160,4 +229,10 @@ export function useGameDispatch() {
   const ctx = useContext(GameStateContext);
   if (!ctx) throw new Error('useGameDispatch must be used within GameStateProvider');
   return ctx.dispatch;
+}
+
+export function useBackendConfig() {
+  const ctx = useContext(GameStateContext);
+  if (!ctx) throw new Error('useBackendConfig must be used within GameStateProvider');
+  return ctx.config;
 }

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useGameState } from '../context/GameStateContext';
+import { fetchEstadoDetalle, estadoIdMapping } from '../services/apiService';
 import simbolos from '../data/simbolos';
 
 function obtenerClaseBienestar(porcentaje) {
@@ -172,89 +173,7 @@ const estados = [
   }
 ];
 
-const mockMunicipios = {
-  "Jalisco": [
-    { nombre: "Guadalajara", bienestar: 78, recurso: "Agua" },
-    { nombre: "Zapopan", bienestar: 82, recurso: "Energía" },
-    { nombre: "Tlaquepaque", bienestar: 65, recurso: "Agua" },
-    { nombre: "Tonalá", bienestar: 54, recurso: "Presupuesto" },
-    { nombre: "Puerto Vallarta", bienestar: 71, recurso: "Energía" },
-  ],
-  "Mexico City": [
-    { nombre: "Cuauhtémoc", bienestar: 74, recurso: "Agua" },
-    { nombre: "Benito Juárez", bienestar: 88, recurso: "Energía" },
-    { nombre: "Miguel Hidalgo", bienestar: 80, recurso: "Presupuesto" },
-    { nombre: "Iztapalapa", bienestar: 42, recurso: "Agua" },
-    { nombre: "Coyoacán", bienestar: 76, recurso: "Energía" },
-  ],
-  "Nuevo León": [
-    { nombre: "Monterrey", bienestar: 75, recurso: "Agua" },
-    { nombre: "San Pedro Garza", bienestar: 91, recurso: "Energía" },
-    { nombre: "Guadalupe", bienestar: 63, recurso: "Presupuesto" },
-    { nombre: "Apodaca", bienestar: 68, recurso: "Agua" },
-    { nombre: "Escobedo", bienestar: 70, recurso: "Energía" },
-  ],
-  "Veracruz": [
-    { nombre: "Veracruz", bienestar: 61, recurso: "Presupuesto" },
-    { nombre: "Xalapa", bienestar: 73, recurso: "Agua" },
-    { nombre: "Coatzacoalcos", bienestar: 55, recurso: "Agua" },
-    { nombre: "Córdoba", bienestar: 67, recurso: "Energía" },
-    { nombre: "Orizaba", bienestar: 69, recurso: "Presupuesto" },
-  ],
-  "Yucatán": [
-    { nombre: "Mérida", bienestar: 77, recurso: "Agua" },
-    { nombre: "Valladolid", bienestar: 59, recurso: "Energía" },
-    { nombre: "Tizimín", bienestar: 51, recurso: "Presupuesto" },
-    { nombre: "Progreso", bienestar: 64, recurso: "Agua" },
-    { nombre: "Tekax", bienestar: 48, recurso: "Energía" },
-  ],
-  "Puebla": [
-    { nombre: "Puebla", bienestar: 72, recurso: "Agua" },
-    { nombre: "Tehuacán", bienestar: 58, recurso: "Energía" },
-    { nombre: "San Martín", bienestar: 53, recurso: "Presupuesto" },
-    { nombre: "Atlixco", bienestar: 66, recurso: "Agua" },
-    { nombre: "Cholula", bienestar: 79, recurso: "Energía" },
-  ],
-  "Guanajuato": [
-    { nombre: "León", bienestar: 74, recurso: "Agua" },
-    { nombre: "Irapuato", bienestar: 65, recurso: "Energía" },
-    { nombre: "Celaya", bienestar: 61, recurso: "Presupuesto" },
-    { nombre: "Salamanca", bienestar: 57, recurso: "Agua" },
-    { nombre: "Guanajuato", bienestar: 70, recurso: "Energía" },
-  ],
-  "Baja California": [
-    { nombre: "Tijuana", bienestar: 63, recurso: "Agua" },
-    { nombre: "Mexicali", bienestar: 69, recurso: "Energía" },
-    { nombre: "Ensenada", bienestar: 72, recurso: "Presupuesto" },
-    { nombre: "Playas Rosarito", bienestar: 58, recurso: "Agua" },
-    { nombre: "Tecate", bienestar: 66, recurso: "Energía" },
-  ],
-  "Chihuahua": [
-    { nombre: "Chihuahua", bienestar: 71, recurso: "Agua" },
-    { nombre: "Ciudad Juárez", bienestar: 60, recurso: "Presupuesto" },
-    { nombre: "Delicias", bienestar: 67, recurso: "Energía" },
-    { nombre: "Cuauhtémoc", bienestar: 63, recurso: "Agua" },
-    { nombre: "Parral", bienestar: 55, recurso: "Energía" },
-  ],
-  "Michoacán": [
-    { nombre: "Morelia", bienestar: 73, recurso: "Agua" },
-    { nombre: "Uruapan", bienestar: 65, recurso: "Energía" },
-    { nombre: "Zamora", bienestar: 58, recurso: "Presupuesto" },
-    { nombre: "Lázaro Cárdenas", bienestar: 52, recurso: "Agua" },
-    { nombre: "Pátzcuaro", bienestar: 69, recurso: "Energía" },
-  ],
-};
 
-function getMunicipios(estado) {
-  if (mockMunicipios[estado]) return mockMunicipios[estado];
-  const recursos = ["Agua", "Energía", "Presupuesto"];
-  const prefijos = ["Norte", "Sur", "Centro", "Este", "Oeste"];
-  return prefijos.map((p, i) => ({
-    nombre: `${estado} ${p}`,
-    bienestar: 45 + ((estado.length * 7 + i * 13) % 41),
-    recurso: recursos[(estado.length + i) % 3],
-  }));
-}
 
 function Tablero({ estadoSeleccionado, setEstadoSeleccionado }) {
   const gameState = useGameState();
@@ -262,6 +181,9 @@ function Tablero({ estadoSeleccionado, setEstadoSeleccionado }) {
   const [hoveredInfo, setHoveredInfo] = useState(null);
   const [animSpeed, setAnimSpeed] = useState(0.3);
   const [shadowIntensity, setShadowIntensity] = useState(0.7);
+  const [municipiosData, setMunicipiosData] = useState([]);
+  const [municipiosLoading, setMunicipiosLoading] = useState(false);
+  const [municipiosError, setMunicipiosError] = useState(null);
   const svgRef = useRef(null);
   const hoverTimeout = useRef(null);
 
@@ -270,6 +192,52 @@ function Tablero({ estadoSeleccionado, setEstadoSeleccionado }) {
       if (hoverTimeout.current) clearTimeout(hoverTimeout.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (!estadoSeleccionado) {
+      setMunicipiosData([]);
+      setMunicipiosError(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const code = Object.keys(gameState.estados).find(
+      k => gameState.estados[k].nombre === estadoSeleccionado
+    );
+    const id = code ? estadoIdMapping[code] : null;
+
+    if (!id) {
+      setMunicipiosData([]);
+      return;
+    }
+
+    setMunicipiosLoading(true);
+    setMunicipiosError(null);
+
+    fetchEstadoDetalle(id).then(data => {
+      if (cancelled) return;
+      if (data && data.recursos) {
+        const rows = data.recursos.map(r => ({
+          nombre: r.nombreRecurso,
+          bienestar: Math.round((r.indiceDisponibilidad || 0.5) * 100),
+          recurso: r.nombreRecurso,
+        }));
+        setMunicipiosData(rows);
+      } else {
+        setMunicipiosData([]);
+      }
+      setMunicipiosLoading(false);
+    }).catch(() => {
+      if (cancelled) return;
+      setMunicipiosError('Error al cargar datos');
+      setMunicipiosData([]);
+      setMunicipiosLoading(false);
+    });
+
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [estadoSeleccionado]);
 
   function handleMouseEnter(e, estado) {
     setHovered(estado.name);
@@ -306,7 +274,7 @@ function Tablero({ estadoSeleccionado, setEstadoSeleccionado }) {
     }, 400);
   }
 
-  const municipios = estadoSeleccionado ? getMunicipios(estadoSeleccionado) : [];
+  const municipios = estadoSeleccionado ? municipiosData : [];
 
   return (
     <main className={`tablero ${estadoSeleccionado ? 'tablero-con-seleccion' : ''}`}>
@@ -484,7 +452,7 @@ function Tablero({ estadoSeleccionado, setEstadoSeleccionado }) {
               <button className="panel-cerrar" onClick={() => setEstadoSeleccionado(null)}>✕</button>
             </div>
             <div className="panel-sub">
-              MUNICIPIOS · {municipios.length} REGISTROS
+              MUNICIPIOS · {municipiosLoading ? '...' : municipios.length} REGISTROS
             </div>
             <div className="panel-tabla-wrap">
               <table className="tabla-municipios">
@@ -496,21 +464,31 @@ function Tablero({ estadoSeleccionado, setEstadoSeleccionado }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {municipios.map((m, i) => (
-                    <tr key={i}>
-                      <td className="td-municipio">{m.nombre}</td>
-                      <td className="td-bienestar">
-                        <div className="bienestar-bar">
-                          <div
-                            className="bienestar-fill"
-                            style={{ width: `${m.bienestar}%` }}
-                          />
-                        </div>
-                        <span className="bienestar-valor">{m.bienestar}%</span>
-                      </td>
-                      <td className="td-recurso">{m.recurso}</td>
+                  {municipiosLoading ? (
+                    <tr>
+                      <td colSpan={3} className="td-loading">Cargando datos...</td>
                     </tr>
-                  ))}
+                  ) : municipiosError ? (
+                    <tr>
+                      <td colSpan={3} className="td-error">{municipiosError}</td>
+                    </tr>
+                  ) : (
+                    municipios.map((m, i) => (
+                      <tr key={i}>
+                        <td className="td-municipio">{m.nombre}</td>
+                        <td className="td-bienestar">
+                          <div className="bienestar-bar">
+                            <div
+                              className="bienestar-fill"
+                              style={{ width: `${m.bienestar}%` }}
+                            />
+                          </div>
+                          <span className="bienestar-valor">{m.bienestar}%</span>
+                        </td>
+                        <td className="td-recurso">{m.recurso}</td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
